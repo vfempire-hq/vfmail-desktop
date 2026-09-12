@@ -1,0 +1,26 @@
+/* ============================================================
+ * VF Mail — updater + firewall UI
+ * ============================================================ */
+
+.vfup-back{position:fixed;inset:0;z-index:9997;display:flex;align-items:center;justify-content:center;
+  background:rgba(15,17,19,.5);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+  animation:vfupIn .2s cubic-bezier(.4,0,.2,1)}
+@keyframes vfupIn{from{opacity:0}to{opacity:1}}
+.vfup-card{width:min(520px,92vw);max-height:80vh;overflow-y:auto;background:#fff;color:var(--ink);
+  border-radius:18px;padding:22px 24px 20px;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.4);border:1px solid var(--line)}
+html[data-theme=dark] .vfup-card{background:#101215;color:var(--ink)}
+.vfup-card h3{font-family:'Playfair Display',serif;font-weight:700;font-size:22px;margin-bottom:4px}
+.vfup-current{color:var(--dove);font-size:12.5px;margin-bottom:14px}
+.vfup-notes{background:var(--silver);padding:12px 14px;border-radius:10px;font-size:13px;line-height:1.55;
+  white-space:pre-wrap;color:var(--ink);border:1px solid var(--line);margin-bottom:16px}
+html[data-theme=dark] .vfup-notes{background:#161a1e}
+.vfup-actions{display:flex;gap:10px;justify-content:flex-end}
+.vfup-actions .btn-core,.vfup-actions .btn-ghost{padding:8px 18px;font-size:13px}
+
+.fw-editor{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.fw-editor label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:650;color:var(--dove);letter-spacing:.04em;text-transform:uppercase}
+.fw-editor input{padding:9px 11px;background:var(--silver);border:1px solid var(--line);border-radius:9px;font-size:13px;font-family:inherit;color:var(--ink)}
+.fw-editor input:focus{border-color:var(--core);background:#fff;outline:0}
+.fw-editor .btn-core{width:auto;padding:9px 22px;font-size:13px;align-self:flex-start}
+.fw-msg{color:var(--dove);font-size:12.5px;font-weight:600}

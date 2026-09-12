@@ -1,0 +1,31 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Capabilities for VF Mail desktop app.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-maximize",
+    "core:window:allow-unmaximize",
+    "core:window:allow-set-fullscreen",
+    "core:webview:default",
+    "dialog:default",
+    "shell:allow-open",
+    {
+      "identifier": "fs:allow-read-file",
+      "allow": [
+        { "path": "$HOME/VFMail/**" },
+        { "path": "$APPDATA/VFMail/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-write-file",
+      "allow": [
+        { "path": "$HOME/VFMail/**" },
+        { "path": "$APPDATA/VFMail/**" }
+      ]
+    }
+  ]
+}

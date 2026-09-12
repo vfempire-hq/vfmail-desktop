@@ -1,0 +1,11 @@
+name = "vfmail-updates"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+[[routes]]
+pattern = "updates.vfempire.com/*"
+zone_name = "vfempire.com"
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "vfmail-updates"

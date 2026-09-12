@@ -1,0 +1,33 @@
+# Rust / Cargo build outputs (any depth)
+**/target/
+**/*.rlib
+**/*.rmeta
+
+# node
+**/node_modules/
+
+# Log/temp artifacts
+*.log
+*.tgz
+/tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Secrets — NEVER commit
+.secrets/
+.env
+.env.*
+*.pem
+mail.creds.json
+identity.enc
+# .updater.key not caught by *.key because Tauri needs the pub key committed
+.secrets/tauri.updater.key
+.secrets/tauri.updater.key.pub
+.env.ship

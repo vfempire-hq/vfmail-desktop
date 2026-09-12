@@ -1,0 +1,96 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0",
+  "productName": "VF Mail",
+  "version": "0.1.12",
+  "identifier": "com.vfempire.vfmail",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "enableGTKAppId": false,
+    "windows": [
+      {
+        "title": "VF Mail",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "decorations": true,
+        "transparent": false,
+        "center": true,
+        "devtools": true
+      }
+    ],
+    "security": {
+      "csp": null
+    },
+    "trayIcon": {
+      "iconPath": "icons/icon.png"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://updates.vfempire.com/vfmail/{{target}}/{{arch}}/{{current_version}}"
+      ],
+      "dialog": false,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ5MDc5NEMxNzk0MDM0RDkKUldUWk5FQjV3WlFIMlc5RkV2M3dzMk1mcC9TaDZMdVU1c2c5M3ZQOXNRNFZLdktuT3lkTVZ2YWgK",
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": [
+      "nsis",
+      "msi",
+      "appimage",
+      "deb",
+      "dmg",
+      "app"
+    ],
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "nsis": {
+        "installerHooks": "installer/hooks.nsh",
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "hardenedRuntime": true,
+      "exceptionDomain": "vfempire.com"
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0"
+        ]
+      },
+      "appimage": {
+        "bundleMediaFramework": true
+      }
+    },
+    "publisher": "VF Empire",
+    "shortDescription": "Sovereign mail. Your keys, your hardware, your vault.",
+    "longDescription": "VF Mail is a local-first, end-to-end encrypted mail client. Your mail, folders, and files live on your own hardware. No third-party servers see your data.",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico",
+      "icons/icon.icns"
+    ],
+    "category": "Productivity",
+    "copyright": "© 2026 VF Empire"
+  }
+}
