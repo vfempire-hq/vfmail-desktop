@@ -1,0 +1,55 @@
+# Fastlane setup for VF Mail Desktop.
+#
+# Two lanes:
+#
+#   provision_developer_id
+#     One-time (or when rotating) — generates a fresh "Developer ID Application"
+#     certificate + private key using the App Store Connect API, encrypts with
+#     MATCH_PASSWORD, and pushes to the vf-certificates private repo.
+#     Run this manually from CI (workflow_dispatch input: mode=provision).
+#
+#   fetch_developer_id
+#     Every-run — pulls the encrypted cert bundle, decrypts it, imports into
+#     the runner's keychain. After this lane runs, `cargo tauri build` on
+#     macOS can codesign using APPLE_SIGNING_IDENTITY.
+
+default_platform(:mac)
+
+platform :mac do
+
+  desc "Provision (or rotate) the Developer ID Application cert via App Store Connect API."
+  lane :provision_developer_id do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APPLE_API_KEY_ID"],
+      issuer_id: ENV["APPLE_API_ISSUER"],
+      key_filepath: ENV["APPLE_API_KEY_PATH"],
+      in_house: false,
+    )
+
+    match(
+      type: "developer_id",
+      api_key: api_key,
+      force: true,
+      readonly: false,
+      skip_provisioning_profiles: true,
+    )
+  end
+
+  desc "Fetch the existing Developer ID Application cert from the private storage repo."
+  lane :fetch_developer_id do
+    api_key = app_store_connect_api_key(
+      key_id: ENV["APPLE_API_KEY_ID"],
+      issuer_id: ENV["APPLE_API_ISSUER"],
+      key_filepath: ENV["APPLE_API_KEY_PATH"],
+      in_house: false,
+    )
+
+    match(
+      type: "developer_id",
+      api_key: api_key,
+      readonly: true,
+      skip_provisioning_profiles: true,
+    )
+  end
+
+end

@@ -1,0 +1,26 @@
+# Fastlane Match config for VF Mail Desktop code-signing.
+#
+# What match does:
+#   - On first run, uses the App Store Connect API key (env: APPLE_API_KEY_PATH,
+#     APPLE_API_KEY_ID, APPLE_API_ISSUER) to generate a "Developer ID Application"
+#     certificate for macOS direct-download distribution.
+#   - Encrypts the cert + private key with MATCH_PASSWORD (AES-256).
+#   - Pushes the encrypted bundle to https://github.com/vfempire-hq/vf-certificates.
+#   - Subsequent runs pull the same encrypted bundle and decrypt with MATCH_PASSWORD.
+#
+# The private cert-storage repo is private. Only the GH Actions runner and
+# holders of MATCH_PASSWORD can decrypt anything inside.
+
+git_url("https://github.com/vfempire-hq/vf-certificates")
+storage_mode("git")
+
+# Type is set per-invocation via the CLI (developer_id for direct-download macOS,
+# appstore for iOS App Store, etc).
+
+app_identifier(["com.vfempire.vfmail"])
+username("noirdaairbnb@gmail.com")
+team_id("W42R9PA4AH")
+
+# Force a fresh readonly fetch on CI so we don't accidentally regenerate certs.
+# The first-time-provision job explicitly overrides this with --force.
+readonly(true)

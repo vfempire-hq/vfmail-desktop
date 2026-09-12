@@ -2,6 +2,13 @@ name: VF Mail — release build
 
 on:
   workflow_dispatch:
+    inputs:
+      provision_signing_cert:
+        description: "First-time only: generate the Developer ID Application cert via Fastlane Match"
+        required: false
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
   push:
     tags:
       - 'v*'
@@ -49,34 +56,83 @@ jobs:
       - name: Install cargo-tauri
         run: cargo install tauri-cli --version '^2' --locked
 
-      # macOS signing — only inject Apple env when the certificate secret
-      # exists. Without it, Tauri produces an unsigned .app bundle (which
-      # macOS Gatekeeper will flag; users right-click → Open on first launch).
-      - name: Build (Tauri v2, macOS with Apple cert)
-        if: matrix.os == 'macos-latest' && env.HAS_APPLE_CERT == 'true'
+      # macOS: fetch (or provision) the Developer ID Application cert via
+      # Fastlane Match. Requires MATCH_PASSWORD + MATCH_GIT_TOKEN secrets.
+      - name: Set up Ruby + Fastlane (macOS)
+        if: matrix.os == 'macos-latest' && env.HAS_MATCH == 'true'
         env:
-          HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
+          HAS_MATCH: ${{ secrets.MATCH_PASSWORD != '' && secrets.MATCH_GIT_TOKEN != '' }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Write App Store Connect API key to disk (macOS)
+        if: matrix.os == 'macos-latest' && env.HAS_MATCH == 'true'
+        env:
+          HAS_MATCH: ${{ secrets.MATCH_PASSWORD != '' && secrets.MATCH_GIT_TOKEN != '' }}
+        run: |
+          mkdir -p ~/.appstoreconnect
+          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > ~/.appstoreconnect/AuthKey.p8
+          chmod 600 ~/.appstoreconnect/AuthKey.p8
+
+      - name: Provision Developer ID cert (first-time only)
+        if: matrix.os == 'macos-latest' && env.HAS_MATCH == 'true' && github.event.inputs.provision_signing_cert == 'true'
+        env:
+          HAS_MATCH: ${{ secrets.MATCH_PASSWORD != '' && secrets.MATCH_GIT_TOKEN != '' }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_TOKEN }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: /Users/runner/.appstoreconnect/AuthKey.p8
+        run: bundle exec fastlane mac provision_developer_id
+
+      - name: Fetch Developer ID cert (every run)
+        if: matrix.os == 'macos-latest' && env.HAS_MATCH == 'true'
+        env:
+          HAS_MATCH: ${{ secrets.MATCH_PASSWORD != '' && secrets.MATCH_GIT_TOKEN != '' }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_TOKEN }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: /Users/runner/.appstoreconnect/AuthKey.p8
+        run: bundle exec fastlane mac fetch_developer_id
+
+      - name: Discover signing identity (macOS)
+        if: matrix.os == 'macos-latest' && env.HAS_MATCH == 'true'
+        id: signing
+        env:
+          HAS_MATCH: ${{ secrets.MATCH_PASSWORD != '' && secrets.MATCH_GIT_TOKEN != '' }}
+        run: |
+          IDENTITY=$(security find-identity -v -p codesigning | grep 'Developer ID Application' | head -1 | awk -F'"' '{print $2}')
+          echo "APPLE_SIGNING_IDENTITY=$IDENTITY" >> $GITHUB_ENV
+          echo "Discovered: $IDENTITY"
+
+      - name: Build (Tauri v2, macOS SIGNED + notarized)
+        if: matrix.os == 'macos-latest' && env.HAS_MATCH == 'true'
+        env:
+          HAS_MATCH: ${{ secrets.MATCH_PASSWORD != '' && secrets.MATCH_GIT_TOKEN != '' }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # Match already imported the cert to the runner's keychain.
+          APPLE_SIGNING_IDENTITY: ${{ env.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Notarization uses the API key.
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY_PATH: /Users/runner/.appstoreconnect/AuthKey.p8
         working-directory: src-tauri
         run: cargo tauri build --target ${{ matrix.target }}
 
-      - name: Build (Tauri v2, macOS unsigned)
-        if: matrix.os == 'macos-latest' && env.HAS_APPLE_CERT != 'true'
+      - name: Build (Tauri v2, macOS UNSIGNED — Match not configured)
+        if: matrix.os == 'macos-latest' && env.HAS_MATCH != 'true'
         env:
-          HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
+          HAS_MATCH: ${{ secrets.MATCH_PASSWORD != '' && secrets.MATCH_GIT_TOKEN != '' }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         working-directory: src-tauri
-        # --no-bundle prevents the codesign step; we'll bundle without signing.
-        run: |
-          cargo tauri build --target ${{ matrix.target }} --bundles app,dmg
+        run: cargo tauri build --target ${{ matrix.target }} --bundles app,dmg
 
       - name: Build (Tauri v2, Linux + Windows)
         if: matrix.os != 'macos-latest'
