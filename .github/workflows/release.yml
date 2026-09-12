@@ -49,8 +49,13 @@ jobs:
       - name: Install cargo-tauri
         run: cargo install tauri-cli --version '^2' --locked
 
-      - name: Build (Tauri v2)
+      # macOS signing — only inject Apple env when the certificate secret
+      # exists. Without it, Tauri produces an unsigned .app bundle (which
+      # macOS Gatekeeper will flag; users right-click → Open on first launch).
+      - name: Build (Tauri v2, macOS with Apple cert)
+        if: matrix.os == 'macos-latest' && env.HAS_APPLE_CERT == 'true'
         env:
+          HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -59,6 +64,25 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        working-directory: src-tauri
+        run: cargo tauri build --target ${{ matrix.target }}
+
+      - name: Build (Tauri v2, macOS unsigned)
+        if: matrix.os == 'macos-latest' && env.HAS_APPLE_CERT != 'true'
+        env:
+          HAS_APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        working-directory: src-tauri
+        # --no-bundle prevents the codesign step; we'll bundle without signing.
+        run: |
+          cargo tauri build --target ${{ matrix.target }} --bundles app,dmg
+
+      - name: Build (Tauri v2, Linux + Windows)
+        if: matrix.os != 'macos-latest'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         working-directory: src-tauri
         run: cargo tauri build --target ${{ matrix.target }}
 
