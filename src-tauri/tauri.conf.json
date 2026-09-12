@@ -39,7 +39,7 @@
         "https://updates.vfempire.com/vfmail/{{target}}/{{arch}}/{{current_version}}"
       ],
       "dialog": false,
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ5MDc5NEMxNzk0MDM0RDkKUldUWk5FQjV3WlFIMlc5RkV2M3dzMk1mcC9TaDZMdVU1c2c5M3ZQOXNRNFZLdktuT3lkTVZ2YWgK",
+      "pubkey": "ZFc1MGNuVnpkR1ZrSUdOdmJXMWxiblE2SUcxcGJtbHphV2R1SUhCMVlteHBZeUJyWlhrNklERkVOamd6TVRSRk5EVXdOVE5HTXpjS1VsZFJNMUIzVmtaVWFrWnZTR1IzWkdWTFdEaDVkbWwxVW1sMlkweE1iVXhZU1RabFdVSmtUakJaT0NzNGNWaE1TVFZPZUhsblpsb0s=",
       "windows": {
         "installMode": "passive"
       }
