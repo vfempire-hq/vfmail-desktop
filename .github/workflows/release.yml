@@ -100,8 +100,77 @@ jobs:
           name: vfmail-${{ matrix.label }}
           path: out/*
 
+  android:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Rust + Android targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          shared-key: android
+
+      - name: Install cargo-tauri + cargo-ndk
+        run: |
+          cargo install tauri-cli --version '^2' --locked
+          cargo install cargo-ndk --locked
+
+      - name: Install Android NDK 27.2.12479018
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r27c
+          local-cache: true
+
+      - name: Init Tauri Android project (idempotent)
+        working-directory: src-tauri
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          if [ ! -d gen/android ]; then
+            cargo tauri android init
+          fi
+
+      - name: Build Android APK (unsigned debug for direct download)
+        working-directory: src-tauri
+        env:
+          NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+          ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
+        run: |
+          cargo tauri android build --debug --apk --split-per-abi
+          find gen/android -name '*.apk' -exec ls -la {} \;
+
+      - name: Collect APKs
+        shell: bash
+        run: |
+          mkdir -p out
+          find src-tauri/gen/android -name '*.apk' -exec cp {} out/ \;
+          # Also produce sha256 alongside each APK
+          for f in out/*.apk; do
+            [ -f "$f" ] && sha256sum "$f" | awk '{print $1}' > "$f.sha256"
+          done
+          ls -la out/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vfmail-android
+          path: out/*
+
   publish:
-    needs: build
+    needs: [build, android]
     runs-on: ubuntu-22.04
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
