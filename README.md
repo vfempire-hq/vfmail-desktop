@@ -1,146 +1,150 @@
-# VF Mail — Desktop
+<div align="center">
+
+# ✉  VF Mail — Desktop
 
 **Sovereign mail. Your keys. Your hardware. Your vault.**
 
-VF Mail Desktop is a Tauri app that wraps the existing web UI in a native
-shell, adds a real filesystem-backed Files section, and gates the mailbox
-behind a heavy-security vault-unlock ceremony.
+End-to-end encrypted mail and direct messages, running on hardware you own,
+against a mail server you control. Nothing about your messages is readable by
+anyone but you and your recipient — not by us, not by ad-tech, not by
+governments. There is no key material we could hand over even if compelled.
 
-Nothing about it phones home. The only outbound traffic goes to the user's
-own mail server (their choice) and (optionally) the signed auto-updater.
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Tauri v2](https://img.shields.io/badge/Tauri-v2-24C8DB.svg)](https://tauri.app)
+[![Version](https://img.shields.io/badge/version-0.1.12-brightgreen.svg)](https://github.com/vfempire-hq/vfmail-desktop/releases)
+
+</div>
+
+---
+
+## Install
+
+### Windows
+```powershell
+iex (iwr -useb https://inbox.vfempire.com/downloads/install.ps1).Content
+```
+Prebuilt NSIS installer, SHA-256 verified, ~30 seconds. No Rust, no VS Build Tools.
+
+### Linux
+```bash
+curl -sSL https://inbox.vfempire.com/downloads/install.sh | bash
+```
+AppImage or .deb.
+
+### macOS / iOS / Android
+Coming with the paid launch on November 1, 2026.
+
+### Build from source
+```powershell
+iex (iwr -useb https://inbox.vfempire.com/downloads/install-from-source.ps1).Content
+```
+
+---
+
+## What VF Mail actually does
+
+- **Vault-gated auto-login.** Your JMAP credentials live inside an
+  age-encrypted vault sealed by your local password. The mailbox never
+  appears without an unlock.
+- **age (X25519) sealed mail between VF users.** When both sender and
+  recipient are on VF Mail, the message body is age-sealed on the sender's
+  device and can only be opened by the recipient's device. Everyone else —
+  including our mail server — sees only ciphertext.
+- **Ed25519 signed identity.** Every VF user has a published signing key.
+  Every sealed message carries a detached signature that verifies the
+  sender without exposing anything about them.
+- **VF Sealed Channel (Phase 1).** Direct messages ride a purpose-built
+  transport that hides envelope metadata. On the wire, the server sees only
+  `{ recipient_id: sha256(pubkey), sealed_blob }`. It does NOT know which
+  email addresses either party owns. Envelope hiding for VF↔VF traffic; SMTP
+  fallback for talking to non-VF addresses with an explicit warning.
+- **Signed auto-updater.** Every release ships with a minisign signature.
+  Updates are verified before install.
+- **Native Files.** Real filesystem-backed file management, not a JMAP hack.
+  Runs on your disk, respects your OS.
+- **Vault sync.** Syncthing, NAS, or your own cloud — pick your own
+  transport. We do not host your vault.
+
+---
+
+## What VF Mail deliberately does NOT do
+
+- Ship a telemetry pipe, an analytics library, or a "usage reporting" toggle.
+- Send your outbox to an "AI summariser" running in someone else's cloud.
+- Share your address book with a spam detection service.
+- Fetch fonts, icons, or any resource from a CDN we don't operate.
+- Have any way for us to read your mail or direct messages.
+
+---
+
+## The trust model in one line
+
+> The private key of your identity is encrypted with your vault password and
+> lives on your device. Nothing that touches the network can read your mail.
+
+If you want the long version, read [`src-tauri/src/mail_crypto.rs`](src-tauri/src/mail_crypto.rs)
+and [`src-tauri/src/channel.rs`](src-tauri/src/channel.rs). We wrote them so
+they'd be readable.
+
+---
 
 ## Layout
 
 ```
 vfmail-desktop/
 ├── dist/                       Frontend (HTML/CSS/JS — shared with web build)
-│   ├── index.html              Now wires vault-shell + native adapter
-│   ├── app.js / app.css        Same code that runs on inbox.vfempire.com
-│   ├── vf-ui.js                Shared UI primitives (dot-rail, tooltips)
-│   ├── vault-shell.js          Vault-lock hero screen (mailbox-themed)
-│   ├── vault-shell.css         Its styles
-│   └── vf-files-native.js      Client adapter: routes Files ops to Rust
-│                               when window.__TAURI__ is present; no-op
-│                               in the web build so demos still work.
-├── src-tauri/
-│   ├── tauri.conf.json         Window / bundle / capability config
-│   ├── Cargo.toml              Rust deps (rusqlite, argon2, xchacha20poly1305, …)
-│   ├── build.rs
-│   ├── capabilities/
-│   │   └── default.json        Filesystem allowlist (only ~/VFMail/**)
-│   └── src/
-│       ├── main.rs             tiny entry
-│       ├── lib.rs              Tauri command handlers
-│       ├── vault.rs            Vault create/unlock lifecycle
-│       ├── crypto.rs           Argon2id KDF + XChaCha20-Poly1305 wrap
-│       ├── meta.rs             SQLite metadata (folders / files / bin / versions)
-│       └── fsops.rs            Real fs::rename / fs::copy / fs::create_dir …
-├── icons/                      App icons (add real ones before shipping)
-└── README.md                   This file
+│   ├── index.html              Wires vault-shell + native adapter
+│   ├── app.js / app.css        Mail client
+│   ├── dm.js                   Direct messages (Sealed Channel)
+│   ├── vf-crypto.js            Client bindings for Rust crypto commands
+│   ├── vf-sync.js              Vault sync UI
+│   ├── vault-shell.js          Vault-lock hero screen
+│   └── vf-ui.js                Shared UI primitives
+├── src-tauri/                  Rust core
+│   ├── src/
+│   │   ├── vault.rs            age-encrypted vault lifecycle
+│   │   ├── identity.rs         age + Ed25519 keypair generation
+│   │   ├── mail_crypto.rs      Seal + open sealed mail bodies
+│   │   ├── channel.rs          VF Sealed Channel client
+│   │   ├── keydir.rs           Public-key directory lookup
+│   │   ├── fsops.rs            Native filesystem operations
+│   │   └── sync.rs             Vault sync detection + config
+│   └── tauri.conf.json         App metadata + updater config
+├── updater-worker/             Cloudflare Worker for signed update manifests
+├── scripts/                    Build + release helpers
+└── ship-update.sh              One-command update lane for internal use
 ```
 
-## Vault layout on disk
+---
 
-Everything lives under a single vault directory. Default: `~/VFMail/`,
-user-picked at first launch.
+## Reproducible build
 
-```
-~/VFMail/
-├── vault.json                  KDF params + wrapped master key
-├── index.db                    SQLite metadata (WAL mode)
-├── files/                      user-visible folder tree, mirrored 1:1
-│   ├── Contracts/
-│   │   └── NDA VF Empire.pdf   real file, real path
-│   └── Invoices/2026/
-├── blobs/                      content-addressed store, hard-linked from files/
-│   └── ab/cd/abcd1234…
-├── bin/                        soft-deleted, restorable
-├── previews/                   thumbnails
-└── mail-cache/                 local copy of mail for offline
-```
+Every shipped binary is buildable from this repo. To verify:
 
-## Security posture
-
-- **Password → KEK**: Argon2id, 64 MiB memory, 3 iterations, 4 lanes,
-  16-byte salt (industry-standard sovereign-grade).
-- **Master key wrap**: XChaCha20-Poly1305 (24-byte nonce, AEAD).
-- **Bytes at rest**: file bytes live under `blobs/` as-is; the metadata DB
-  (SQLite) is currently plaintext — v1.1 swaps to SQLCipher.
-- **Bytes in flight**: only to the user's own mail server.
-- **Filesystem allowlist**: capabilities/default.json restricts fs access
-  to `$HOME/VFMail/**` and `$APPDATA/VFMail/**` — the app cannot read the
-  rest of the user's disk even if compromised.
-- **Zero telemetry**: no analytics, no crash reporter, no third-party fonts.
-- **Firewall mode** (milestone 4): user-verifiable outbound whitelist —
-  blocks every socket except the declared mail server and the auto-update
-  endpoint.
-
-## Build
-
-You need Rust and the Tauri v2 CLI. This VM lacks the system libraries
-required for a full build, so build on the beast, the German PC, or a
-CI runner.
-
-### Windows (native, easiest)
-
-```powershell
-# on the German PC:
-winget install Rustlang.Rustup
-rustup default stable
-cargo install tauri-cli@2 --locked
-
-cd vfmail-desktop
+```bash
+git clone https://github.com/vfempire-hq/vfmail-desktop
+cd vfmail-desktop/src-tauri
 cargo tauri build
-# → src-tauri/target/release/bundle/nsis/VF Mail_0.1.0_x64-setup.exe
-# → src-tauri/target/release/bundle/msi/VF Mail_0.1.0_x64_en-US.msi
+# Compare your SHA-256 to the one published at:
+#   https://inbox.vfempire.com/downloads/vfmail-latest-x64-setup.exe.sha256
 ```
 
-### Linux (native, for the beast)
+If they diverge, [open an issue](https://github.com/vfempire-hq/vfmail-desktop/issues) — that's a security bug.
 
-```bash
-sudo apt-get install -y \
-    pkg-config libwebkit2gtk-4.1-dev \
-    libgtk-3-dev libayatana-appindicator3-dev \
-    librsvg2-dev libsoup-3.0-dev libssl-dev
+---
 
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source ~/.cargo/env
-cargo install tauri-cli@2 --locked
+## Security
 
-cd vfmail-desktop
-cargo tauri build
-# → src-tauri/target/release/bundle/appimage/VF Mail_0.1.0_amd64.AppImage
-# → src-tauri/target/release/bundle/deb/vf-mail_0.1.0_amd64.deb
-```
+Vulnerability reports: `security@vfempire.com` or via VF Mail itself. PGP key at [vfempire.com/.well-known/pgp.asc](https://vfempire.com/.well-known/pgp.asc). See [SECURITY.md](https://github.com/vfempire-hq/vfempire-hq/blob/main/SECURITY.md) in the org profile for full policy.
 
-### Cross-compile Linux → Windows
+## License
 
-```bash
-sudo apt-get install -y mingw-w64
-rustup target add x86_64-pc-windows-gnu
-cargo tauri build --target x86_64-pc-windows-gnu
-```
+[AGPL-3.0](LICENSE) — if you host a modified version of VF Mail as a
+service, you must share your modifications with your users. If you want
+commercial terms without the copyleft, contact `licensing@vfempire.com`.
 
-### macOS
+---
 
-Build on a Mac. Standard Xcode command-line tools + rustup + tauri-cli.
-Codesign with an Apple Developer ID for distribution outside the App Store.
-
-## Verifying the Rust core in isolation
-
-The web+desktop VM used to bootstrap this repo doesn't have the system
-libraries Tauri needs, so `cargo tauri build` will fail there. To at
-least prove the Rust core compiles clean, we ship a lite check crate:
-
-```bash
-cd src-tauri/core-check
-cargo check   # exits 0 on this build — vault/crypto/meta/fsops all typecheck
-```
-
-## Milestone status
-
-- [x] **M1** — Tauri scaffold, vault-lock hero, filesystem-backed Files
-- [ ] **M2** — VF↔VF encrypted mail (age + Ed25519, `/.well-known/vfmail-keys/`)
-- [ ] **M3** — Vault sync UI (Syncthing / NAS mount)
-- [ ] **M4** — Signed installers + Tauri auto-updater
-- [ ] **M5** — Mac + Linux + store submissions
+<div align="center">
+<sub>© 2026 VF Empire Corp Ltd · <a href="https://vfempire.com">vfempire.com</a> · Malta C 94160</sub>
+</div>
