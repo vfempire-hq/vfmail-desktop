@@ -8,7 +8,10 @@
 # Fails the build if any secret pattern matches. Blocks PR merge on findings.
 #
 # Copy into every VF Empire public repo at .github/workflows/security-scan.yml.
-# No secrets required — for public repos, no GITLEAKS_LICENSE needed.
+#
+# Runs the gitleaks binary directly (no wrapper action) so this workflow
+# works identically on personal-account repos, organization-owned repos,
+# and forks — no GITLEAKS_LICENSE secret required.
 
 name: security-scan
 
@@ -23,11 +26,13 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 concurrency:
   group: security-scan-${{ github.ref }}
   cancel-in-progress: false
+
+env:
+  GITLEAKS_VERSION: '8.24.2'
 
 jobs:
   gitleaks:
@@ -42,23 +47,37 @@ jobs:
           # Full git history required — gitleaks scans deleted commits + orphan branches
           fetch-depth: 0
 
-      - name: Run gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Optional: GITLEAKS_LICENSE only required for private repos or org-wide programme.
-          # Public repos scan free.
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
-          GITLEAKS_ENABLE_COMMENTS: true
-          GITLEAKS_ENABLE_SUMMARY: true
+      - name: Install gitleaks
+        run: |
+          set -euo pipefail
+          cd /tmp
+          curl -sL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o gitleaks.tar.gz
+          tar xzf gitleaks.tar.gz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          sudo chmod +x /usr/local/bin/gitleaks
+          gitleaks version
 
-      # Optional: publish a badge with the last-run result.
-      # Uncomment if you want the badge to update automatically on gh-pages branch.
-      #
-      # - name: Publish clean-audit badge
-      #   if: success()
-      #   run: |
-      #     mkdir -p /tmp/badge
-      #     echo '{"schemaVersion":1,"label":"gitleaks","message":"clean","color":"success"}' \
-      #       > /tmp/badge/gitleaks.json
-      #     # commit to gh-pages branch — omitted here to keep this template simple
+      - name: Run gitleaks against full history
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          # detect scans full git log — commits, deleted files, orphan branches
+          # --redact hides matched secret values from the log output
+          # --verbose prints per-commit progress so failure output is actionable
+          # Non-zero exit if any finding — fails the workflow
+          gitleaks detect \
+            --source . \
+            --verbose \
+            --redact \
+            --report-format sarif \
+            --report-path gitleaks-report.sarif \
+            --exit-code 1
+
+      - name: Upload SARIF report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.sarif
+          retention-days: 30
+          if-no-files-found: ignore
