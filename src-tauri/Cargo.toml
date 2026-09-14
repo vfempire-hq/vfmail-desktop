@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Sovereign mail. Local-first. End-to-end encrypted."
 authors = ["VF Empire"]
-license = "Proprietary"
+license = "LicenseRef-FSL-1.1-ALv2"
 
 [lib]
 name = "vfmail_lib"

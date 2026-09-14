@@ -9,7 +9,7 @@ against a mail server you control. Nothing about your messages is readable by
 anyone but you and your recipient — not by us, not by ad-tech, not by
 governments. There is no key material we could hand over even if compelled.
 
-[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![License: FSL-1.1-ALv2](https://img.shields.io/badge/license-FSL--1.1--ALv2-blue.svg)](LICENSE)
 [![Tauri v2](https://img.shields.io/badge/Tauri-v2-24C8DB.svg)](https://tauri.app)
 [![Version](https://img.shields.io/badge/version-0.1.12-brightgreen.svg)](https://github.com/vfempire-hq/vfmail-desktop/releases)
 [![security-scan](https://github.com/vfempire-hq/vfmail-desktop/actions/workflows/security-scan.yml/badge.svg)](https://github.com/vfempire-hq/vfmail-desktop/actions/workflows/security-scan.yml)
@@ -138,11 +138,15 @@ If they diverge, [open an issue](https://github.com/vfempire-hq/vfmail-desktop/i
 
 Vulnerability reports: `security@vfempire.com` or via VF Mail itself. PGP key at [vfempire.com/.well-known/pgp.asc](https://vfempire.com/.well-known/pgp.asc). See [SECURITY.md](https://github.com/vfempire-hq/vfempire-hq/blob/main/SECURITY.md) in the org profile for full policy.
 
-## License
+## Licence
 
-[AGPL-3.0](LICENSE) — if you host a modified version of VF Mail as a
-service, you must share your modifications with your users. If you want
-commercial terms without the copyleft, contact `licensing@vfempire.com`.
+Licensed under the **[Functional Source License 1.1 (ALv2)](LICENSE)** — replaces the previous AGPL-3.0 posture as of 2026-09-14.
+
+FSL is source-available: **free** for any use that isn't a Competing Use (internal use, non-commercial education, non-commercial research, professional services provided to FSL-licensed users). It **restricts** redistribution as a commercial product that substitutes for VF Mail. And it **auto-converts each release to Apache 2.0 after two years** — every version becomes fully open source on its second birthday, guaranteed by the licence itself, not a separate promise.
+
+Combined with the Permanence Guarantee (source released within 90 days of any EOL), this means: you can always read our source today, you can always fork anything two-plus years old under Apache 2.0, and if we ever discontinue everything becomes Apache 2.0 within 90 days. Not "trust us" — check `LICENSE`.
+
+For commercial terms — embedding VF Mail's client crypto in your product, custom SLAs, or non-standard integration rights — write to `licensing@vfempire.com`.
 
 ---
 
