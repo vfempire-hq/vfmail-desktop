@@ -12,6 +12,7 @@ governments. There is no key material we could hand over even if compelled.
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Tauri v2](https://img.shields.io/badge/Tauri-v2-24C8DB.svg)](https://tauri.app)
 [![Version](https://img.shields.io/badge/version-0.1.12-brightgreen.svg)](https://github.com/vfempire-hq/vfmail-desktop/releases)
+[![security-scan](https://github.com/vfempire-hq/vfmail-desktop/actions/workflows/security-scan.yml/badge.svg)](https://github.com/vfempire-hq/vfmail-desktop/actions/workflows/security-scan.yml)
 
 </div>
 
