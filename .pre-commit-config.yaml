@@ -1,0 +1,41 @@
+# .pre-commit-config.yaml
+#
+# Runs at git-commit time on the developer's local machine. Catches secrets
+# BEFORE they enter git history — the CI workflow is a backstop; this is the
+# primary gate.
+#
+# Setup (one-time per contributor):
+#   1. Install the pre-commit framework:  pip install pre-commit  (or  brew install pre-commit)
+#   2. From the repo root:  pre-commit install
+#   3. Verify:  pre-commit run --all-files
+#
+# From then on, `git commit` runs gitleaks automatically. If a secret pattern
+# matches, the commit is refused. Fix + retry.
+#
+# Version pinned intentionally. Bump quarterly during the routine security review
+# and re-run `pre-commit run --all-files` to catch anything the new rules find.
+
+repos:
+  # Gitleaks — the primary secret scanner
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+        name: gitleaks-secret-scan
+        description: "Refuse commits containing API keys, tokens, private keys, or other high-entropy secrets."
+
+  # A minimal set of complementary hooks that catch other common trip-ups.
+  # Keep this list short — every hook is a friction point for contributors.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      # Prevent committing large files (usually accidental — real assets go to CDN/R2)
+      - id: check-added-large-files
+        args: ['--maxkb=1024']
+      # Prevent committing files that end in .pem, .key, .env (double-safety)
+      - id: detect-private-key
+      # Prevent unresolved merge conflict markers
+      - id: check-merge-conflict
+      # Refuse commits directly to main/master — force PR flow
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']

@@ -1,0 +1,64 @@
+# .github/workflows/security-scan.yml
+#
+# Gitleaks secret-scanning workflow. Runs on:
+#   - every push (any branch)
+#   - every pull request (any branch)
+#   - weekly cron (Monday 06:00 UTC — catches key rotations from other services)
+#
+# Fails the build if any secret pattern matches. Blocks PR merge on findings.
+#
+# Copy into every VF Empire public repo at .github/workflows/security-scan.yml.
+# No secrets required — for public repos, no GITLEAKS_LICENSE needed.
+
+name: security-scan
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+  schedule:
+    - cron: '0 6 * * 1'   # Monday 06:00 UTC
+  workflow_dispatch: {}   # allow manual runs
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  gitleaks:
+    name: gitleaks-secret-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          # Full git history required — gitleaks scans deleted commits + orphan branches
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional: GITLEAKS_LICENSE only required for private repos or org-wide programme.
+          # Public repos scan free.
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+          GITLEAKS_ENABLE_COMMENTS: true
+          GITLEAKS_ENABLE_SUMMARY: true
+
+      # Optional: publish a badge with the last-run result.
+      # Uncomment if you want the badge to update automatically on gh-pages branch.
+      #
+      # - name: Publish clean-audit badge
+      #   if: success()
+      #   run: |
+      #     mkdir -p /tmp/badge
+      #     echo '{"schemaVersion":1,"label":"gitleaks","message":"clean","color":"success"}' \
+      #       > /tmp/badge/gitleaks.json
+      #     # commit to gh-pages branch — omitted here to keep this template simple
